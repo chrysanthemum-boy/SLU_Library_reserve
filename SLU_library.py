@@ -111,18 +111,18 @@ class LixinLibraryReserve(object):
         re_userInfo = self.client.get(self.url['resvInfo'], params=userInfo_data)
         data = json.loads(re_userInfo.text)
         if data['message'] == '查询成功':
-            print('自习室系统登录成功！')
+            print('图书馆系统登录成功！')
             # 查询房间信息
             re_roomInfo = self.client.get(self.url[select_room], params=roomInfo_data)
             room_data = json.loads(re_roomInfo.text)
 
-            # 返回 自习室座位信息 和 系统个人ID
+            # 返回 图书馆座位信息 和 系统个人ID
             return room_data, data['data'][0]['appAccNo']
 
     # 预约座位
     def post_reserve(self, acc_no, begin_time, end_time, dev_id):
         """
-        :param acc_no: 自习室系统识别用户的id，int,len=9
+        :param acc_no: 图书馆系统识别用户的id，int,len=9
         :param begin_time: 开始时间,str,  '1970-01-01 00:00:00'
         :param end_time: 结束时间,str,  '1970-01-01 00:00:00'
         :param dev_id: 座位id,str, len=9
