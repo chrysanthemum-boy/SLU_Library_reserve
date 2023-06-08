@@ -25,7 +25,7 @@ class LixinLibraryReserve(object):
         self.day = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
         self.client = requests.session()
         self.client.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
         })
         self.url = {
             'login': 'http://kjyy.lixin.edu.cn/ic-web/login/user',
@@ -56,7 +56,6 @@ class LixinLibraryReserve(object):
             "https": "http://" + self.username + ":" + self.password + "@202.121.252.52:443",
         }
 
-
     # 登录系统
     def login(self, select_room):
         """
@@ -78,7 +77,7 @@ class LixinLibraryReserve(object):
         # 使用公钥加密密码
         public_key = '-----BEGIN PUBLIC KEY-----\n' + publicKey + '\n-----END PUBLIC KEY-----'
         password = encrypt(psd, public_key)
-        print('password:', password)
+        # print('password:', password)
 
         # post登录请求信息
         login_data = {
@@ -111,18 +110,23 @@ class LixinLibraryReserve(object):
         })
 
         # 查询个人信息
-        re_userInfo = self.client.get(self.url['resvInfo'], params=userInfo_data)
-        data = json.loads(re_userInfo.text)
-        # print(data)
-        if data['message'] == '查询成功':
-            print('图书馆系统登录成功！')
-            # 查询房间信息
-            re_roomInfo = self.client.get(self.url[select_room], params=roomInfo_data)
-            room_data = json.loads(re_roomInfo.text)
-            # print(data['data'])
+        try:
+            re_userInfo = self.client.get(self.url['resvInfo'], params=userInfo_data)
+            data = json.loads(re_userInfo.text)
+            if data['message'] == '查询成功':
+                print(self.username + '图书馆系统登录成功！')
+                # 查询房间信息
+                re_roomInfo = self.client.get(self.url[select_room], params=roomInfo_data)
+                room_data = json.loads(re_roomInfo.text)
 
-            # 返回 图书馆座位信息 和 系统个人ID
-            return room_data, data['data'][0]['appAccNo']
+                # 返回 图书馆座位信息 和 系统个人ID
+                return room_data, data['data'][0]['appAccNo']
+            else:
+                print(self.username + '登录失败，请检查错误！')
+                print('错误信息：{}'.format(data))
+
+        except Exception as e:
+            print(e)
 
     # 预约座位
     def post_reserve(self, acc_no, begin_time, end_time, dev_id):
@@ -147,24 +151,27 @@ class LixinLibraryReserve(object):
             "resvDev": [dev_id],
             "memo": ""
         }
-        resp = self.client.post(self.url['resv'], json=post_data)
-        if json.loads(resp.text)['message'] == '新增成功':
-            return 1
-        return 0
-
-        # 座位号uuid，删除座位时可能需要
-        # self.uuid = json.loads(resp.text)['data']['uuid']
-
-    # 删除座位
-    # def post_delete(self):
-    #     post_data = {
-    #         "uuid": self.uuid,
-    #     }
-    #     resp = self.client.post(self.url['del'], json=post_data)
-    #     print(json.loads(resp.text))
+        try:
+            resp = self.client.post(self.url['resv'], json=post_data)
+            if json.loads(resp.text)['message'] == '新增成功':
+                return 1, json.loads(resp.text)['message']
+            else:
+                print(json.loads(resp.text))
+                return 0, json.loads(resp.text)['message']
+        except Exception as e:
+            print(e)
 
     # 预约并规范化时间
     def reserve(self, acc_no, day, set_bt, set_et, dev_id):
+        """
+
+        :param acc_no: 图书馆系统识别用户的id，int,len=9
+        :param day: 日期
+        :param set_bt: 开始时间
+        :param set_et: 结束时间
+        :param dev_id: 座位id
+        :return:
+        """
         if day == "tomorrow":
             date = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=1), '%Y-%m-%d')
         else:
@@ -177,20 +184,20 @@ class LixinLibraryReserve(object):
               '座位号: {dev_id}'.format(bt=bt, et=et, dev_id=dev_id))
 
         # 请求预约座位
-        res = self.post_reserve(acc_no=acc_no,
+        res, info = self.post_reserve(acc_no=acc_no,
                                 begin_time=bt,
                                 end_time=et,
                                 dev_id=dev_id)
 
-        return res
+        return res, info
 
 
 def start():
-    mail = Mail('添加你的密码','添加发送方邮箱地址')
-    with open('/home/vv/ww/project/python/SLU_Library_reserve/config2.json', 'r', encoding='utf-8') as fp:
+    mail = Mail('添加你的密码', '添加发送方邮箱地址')
+    with open('config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
-            if datas["state"]==1:
+            if datas["state"] == 1:
                 SLU_reserve = LixinLibraryReserve(datas['username'], datas['password'])
                 task = datas['habit'][0]
                 room_datas, accNo = SLU_reserve.login(task['room'])
@@ -199,15 +206,21 @@ def start():
                     if data["devName"] == task['seat_id']:
                         dev_id = data["devId"]
                         break
-                res = SLU_reserve.reserve(acc_no=accNo,
+                res, info = SLU_reserve.reserve(acc_no=accNo,
                                           day=task['day'],
                                           set_bt=task['bt'],
                                           set_et=task['et'],
                                           dev_id=dev_id,
                                           )
                 if res:
-                    content=datas['habit'][0]["seat_id"]+'预约成功'
-                    mail.send('图书馆约座成功', content, datas['email'])
+                    content = '座位号: {seat_id}\n' \
+                              '预约时间为: {bt} 到 {et}\n' \
+                              '预约成功！'.format(bt=task['bt'],
+                                             et=task['et'],
+                                             seat_id=task['seat_id'])
+                    mail.send('图书馆约座成功！！！', content, datas['email'])
+                else:
+                    mail.send('图书馆约座失败！！！', info, datas['email'])
 
 
 if __name__ == '__main__':
