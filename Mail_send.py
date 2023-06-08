@@ -28,10 +28,3 @@ class Mail(object):
         except smtplib.SMTPException as e:
             print(e.__traceback__.tb_lineno, e)
             print('邮件发送失败！！')
-
-
-# if __name__ == '__main__':
-#     mail = Mail('wnsynzjhshtbdegi','1741063814@qq.com')
-#     mail.send('图书馆约座成功','发送内容',"1741063814@qq.com")
-
-
