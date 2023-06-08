@@ -1,13 +1,19 @@
 {
-  "username": "",
-  "password": "",
-  "habit": [
+  "userinfo": [
     {
-      "room": "Mulan_2F_book",
-      "seat_id": "PDT2FSK120",
-      "day": "today",
-      "bt": "09:30:00",
-      "et": "22:30:00"
+      "username": "",
+      "password": "",
+      "email": "",
+      "habit": [
+        {
+          "room": "Mulan_2F_book",
+          "seat_id": "PDT2FSK124",
+          "day": "tomorrow",
+          "bt": "8:00:00",
+          "et": "22:30:00"
+        }
+      ],
+      "state": 1
     }
   ]
 }

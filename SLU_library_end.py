@@ -8,7 +8,6 @@ from Crypto.Cipher import PKCS1_v1_5 as Cipher_pksc1_v1_5
 from Crypto.PublicKey import RSA
 from Mail_send import Mail
 
-
 # rsa算法加密
 def encrypt(password, public_key):
     rsakey = RSA.importKey(public_key)
@@ -31,7 +30,7 @@ class LixinLibraryReserve(object):
             'login': 'http://kjyy.lixin.edu.cn/ic-web/login/user',
             'resvInfo': 'http://kjyy.lixin.edu.cn/ic-web/reserve/resvInfo',
             'resv': 'http://kjyy.lixin.edu.cn/ic-web/reserve',
-            'del': 'http://kjyy.lixin.edu.cn/ic-web/reserve/delete',
+            'end': 'http://kjyy.lixin.edu.cn/ic-web/reserve/endAhaed',
 
             # 木兰1楼
             'Mulan_1F_101': 'http://kjyy.lixin.edu.cn/ic-web/reserve?roomIds=102622058',
@@ -50,12 +49,12 @@ class LixinLibraryReserve(object):
             'Wenbo_3F_A_2': 'http://kjyy.lixin.edu.cn/ic-web/reserve?roomIds=100792127',
             'Wenbo_3F_A_3': 'http://kjyy.lixin.edu.cn/ic-web/reserve?roomIds=100792131',
 
+
         }
         self.proxy_dict = {
             "http": "http://" + self.username + ":" + self.password + "@202.121.252.52:443",
             "https": "http://" + self.username + ":" + self.password + "@202.121.252.52:443",
         }
-
 
     # 登录系统
     def login(self, select_room):
@@ -121,8 +120,9 @@ class LixinLibraryReserve(object):
             room_data = json.loads(re_roomInfo.text)
             # print(data['data'])
 
-            # 返回 图书馆座位信息 和 系统个人ID
-            return room_data, data['data'][0]['appAccNo']
+            # 返回 图书馆座位信息 和 座位uuid
+            print(data['data'][0]['uuid'])
+            return data['data'][0]['uuid']
 
     # 预约座位
     def post_reserve(self, acc_no, begin_time, end_time, dev_id):
@@ -148,67 +148,38 @@ class LixinLibraryReserve(object):
             "memo": ""
         }
         resp = self.client.post(self.url['resv'], json=post_data)
-        if json.loads(resp.text)['message'] == '新增成功':
-            return 1
-        return 0
+        print(json.loads(resp.text)['message'])
 
         # 座位号uuid，删除座位时可能需要
         # self.uuid = json.loads(resp.text)['data']['uuid']
 
     # 删除座位
-    # def post_delete(self):
-    #     post_data = {
-    #         "uuid": self.uuid,
-    #     }
-    #     resp = self.client.post(self.url['del'], json=post_data)
-    #     print(json.loads(resp.text))
+    def post_delete(self, uuid):
+        post_data = {
+            "uuid": uuid,
+        }
+        resp = self.client.post(self.url['end'], json=post_data)
 
-    # 预约并规范化时间
-    def reserve(self, acc_no, day, set_bt, set_et, dev_id):
-        if day == "tomorrow":
-            date = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(days=1), '%Y-%m-%d')
-        else:
-            date = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
+        print(json.loads(resp.text))
 
-        bt = '{} {}'.format(date, set_bt)
-        et = '{} {}'.format(date, set_et)
-
-        print('你的预约时间为: {bt} 到 {et}\n'
-              '座位号: {dev_id}'.format(bt=bt, et=et, dev_id=dev_id))
-
+    # 取消预约
+    def delete(self, uuid):
         # 请求预约座位
-        res = self.post_reserve(acc_no=acc_no,
-                                begin_time=bt,
-                                end_time=et,
-                                dev_id=dev_id)
-
-        return res
+        self.post_delete(uuid=uuid)
+        return
 
 
 def start():
     mail = Mail('添加你的密码','添加发送方邮箱地址')
-    with open('/home/vv/ww/project/python/SLU_Library_reserve/config2.json', 'r', encoding='utf-8') as fp:
+    with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
-            if datas["state"]==1:
-                SLU_reserve = LixinLibraryReserve(datas['username'], datas['password'])
-                task = datas['habit'][0]
-                room_datas, accNo = SLU_reserve.login(task['room'])
-                dev_id = ''
-                for data in room_datas['data']:
-                    if data["devName"] == task['seat_id']:
-                        dev_id = data["devId"]
-                        break
-                res = SLU_reserve.reserve(acc_no=accNo,
-                                          day=task['day'],
-                                          set_bt=task['bt'],
-                                          set_et=task['et'],
-                                          dev_id=dev_id,
-                                          )
-                if res:
-                    content=datas['habit'][0]["seat_id"]+'预约成功'
-                    mail.send('图书馆约座成功', content, datas['email'])
+            SLU_reserve = LixinLibraryReserve(datas['username'], datas['password'])
+            for task in datas['habit']:
+                uuid = SLU_reserve.login(task['room'])
+                SLU_reserve.delete(uuid=uuid)
 
+            mail.send('图书馆签退成功', '签退成功', datas['email'])
 
 if __name__ == '__main__':
     start()
