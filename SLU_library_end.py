@@ -170,7 +170,7 @@ class LixinLibraryReserve(object):
 
 
 def start():
-    mail=Mail('wnsynzjhshtbdegi','1741063814@qq.com')
+    mail = Mail('添加你的密码','添加发送方邮箱地址')
     with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
