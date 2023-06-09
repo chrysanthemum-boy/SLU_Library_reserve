@@ -129,16 +129,18 @@ class LixinLibraryReserve(object):
 
 
 def start():
-    mail = Mail('添加你的密码', '添加发送方邮箱地址')
-    with open('config.json', 'r', encoding='utf-8') as fp:
+    receivers=[]
+    mail = Mail('添加你的密码','添加发送方邮箱地址')
+    with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
             SLU_reserve = LixinLibraryReserve(datas['username'], datas['password'])
             for task in datas['habit']:
                 uuid = SLU_reserve.login(task['room'])
                 SLU_reserve.delete(uuid=uuid)
-
-            mail.send('图书馆签退成功', '签退成功', datas['email'])
+            receivers.append(datas['email'])
+    for receiver in receivers:
+        mail.send('图书馆签退成功', '签退成功', receiver)
 
 
 if __name__ == '__main__':

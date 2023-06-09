@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import time
 import requests
 import base64
 from Crypto.Cipher import PKCS1_v1_5 as Cipher_pksc1_v1_5
@@ -185,16 +186,17 @@ class LixinLibraryReserve(object):
 
         # 请求预约座位
         res, info = self.post_reserve(acc_no=acc_no,
-                                begin_time=bt,
-                                end_time=et,
-                                dev_id=dev_id)
+                                      begin_time=bt,
+                                      end_time=et,
+                                      dev_id=dev_id)
 
         return res, info
 
 
 def start():
-    mail = Mail('添加你的密码', '添加发送方邮箱地址')
-    with open('config.json', 'r', encoding='utf-8') as fp:
+    mail_heads = []
+    mail = Mail('添加你的密码','添加发送方邮箱地址')
+    with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
             if datas["state"] == 1:
@@ -207,20 +209,31 @@ def start():
                         dev_id = data["devId"]
                         break
                 res, info = SLU_reserve.reserve(acc_no=accNo,
-                                          day=task['day'],
-                                          set_bt=task['bt'],
-                                          set_et=task['et'],
-                                          dev_id=dev_id,
-                                          )
+                                                day=task['day'],
+                                                set_bt=task['bt'],
+                                                set_et=task['et'],
+                                                dev_id=dev_id,
+                                                )
+                print(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
                 if res:
                     content = '座位号: {seat_id}\n' \
                               '预约时间为: {bt} 到 {et}\n' \
                               '预约成功！'.format(bt=task['bt'],
-                                             et=task['et'],
-                                             seat_id=task['seat_id'])
-                    mail.send('图书馆约座成功！！！', content, datas['email'])
+                                                 et=task['et'],
+                                                 seat_id=task['seat_id'])
+                    subject = '图书馆约座成功！！！'
                 else:
-                    mail.send('图书馆约座失败！！！', info, datas['email'])
+                    content = info
+                    subject = '图书馆约座失败！！！'
+
+                head = {
+                    "subject": subject,
+                    "content": content,
+                    "receiver": datas['email']
+                }
+                mail_heads.append(head)
+    for head in mail_heads:
+        mail.send(head["subject"], head["content"], head["receiver"])
 
 
 if __name__ == '__main__':
