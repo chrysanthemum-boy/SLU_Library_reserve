@@ -93,8 +93,10 @@ class LixinLibraryReserve(object):
 
         # get个人信息需携带的参数
         userInfo_data = {
-            'beginDate': '2023-05-29',
-            'endDate': self.day
+            'beginDate': self.day,  # 查询当天的数据
+            'endDate': self.day,
+            'needStatus': 6,     # 2 + 4 表示待生效、已生效
+            'orderModel': 'desc'
         }
 
         # get房间携带参数
@@ -195,8 +197,8 @@ class LixinLibraryReserve(object):
 
 def start():
     mail_heads = []
-    mail = Mail('添加你的密码','添加发送方邮箱地址')
-    with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
+    mail = Mail('添加你的密码', '添加发送方邮箱地址')
+    with open('config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
             if datas["state"] == 1:
@@ -219,8 +221,8 @@ def start():
                     content = '座位号: {seat_id}\n' \
                               '预约时间为: {bt} 到 {et}\n' \
                               '预约成功！'.format(bt=task['bt'],
-                                                 et=task['et'],
-                                                 seat_id=task['seat_id'])
+                                             et=task['et'],
+                                             seat_id=task['seat_id'])
                     subject = '图书馆约座成功！！！'
                 else:
                     content = info

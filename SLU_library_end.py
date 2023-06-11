@@ -92,8 +92,10 @@ class LixinLibraryReserve(object):
 
         # get个人信息需携带的参数
         userInfo_data = {
-            'beginDate': '2023-05-29',
-            'endDate': self.day
+            'beginDate': self.day,  # 查询当天的数据
+            'endDate': self.day,
+            'needStatus': 6,     # 2 + 4 表示待生效、已生效
+            'orderModel': 'desc'
         }
 
         # 获取登录信息，包括token
@@ -129,9 +131,9 @@ class LixinLibraryReserve(object):
 
 
 def start():
-    receivers=[]
-    mail = Mail('添加你的密码','添加发送方邮箱地址')
-    with open('/home/vv/ww/project/python/SLU_Library_reserve/config.json', 'r', encoding='utf-8') as fp:
+    receivers = []
+    mail = Mail('添加你的密码', '添加发送方邮箱地址')
+    with open('config.json', 'r', encoding='utf-8') as fp:
         cfg = json.load(fp)
         for datas in cfg['userinfo']:
             SLU_reserve = LixinLibraryReserve(datas['username'], datas['password'])
